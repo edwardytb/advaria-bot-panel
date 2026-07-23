@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Seguridad Advaria</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background-color: #1e293b; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 480px; }
+        h2 { text-align: center; color: #38bdf8; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.9em; }
+        small { color: #94a3b8; font-size: 0.8em; }
+        input { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #334155; background-color: #0f172a; color: #fff; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; margin-top: 25px; background-color: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background-color: #0369a1; }
+        .status { text-align: center; margin-bottom: 15px; font-weight: bold; }
+        .active { color: #4ade80; }
+        .inactive { color: #f87171; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🛡️ Panel de Seguridad Advaria</h2>
+    <div id="status" class="status">Cargando estado del servidor...</div>
+
+    <form id="configForm">
+        <label for="guildId">ID del Servidor:</label>
+        <input type="text" id="guildId" placeholder="Ej: 123456789012345678" required>
+
+        <label for="logChannel">ID del Canal de Reportes / Logs:</label>
+        <input type="text" id="logChannel" placeholder="Ej: 987654321098765432">
+
+        <label for="modRole">IDs de Roles de Administración / Staff:</label>
+        <small>Separa múltiples IDs con comas (Ej: ID_Fundador, ID_Admin, ID_Staff)</small>
+        <input type="text" id="modRole" placeholder="11111111111, 22222222222, 33333333333">
+
+        <button type="submit">Guardar Configuración</button>
+    </form>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialGuildId = urlParams.get('guildId');
+
+    if (initialGuildId) {
+        document.getElementById('guildId').value = initialGuildId;
+        loadConfig(initialGuildId);
+    }
+
+    document.getElementById('guildId').addEventListener('change', (e) => {
+        loadConfig(e.target.value);
+    });
+
+    async function loadConfig(guildId) {
+        if (!guildId) return;
+        const res = await fetch(`/api/config/${guildId}`);
+        const data = await res.json();
+
+        const statusDiv = document.getElementById('status');
+        if (data.isActivated) {
+            statusDiv.textContent = "🟢 Estado: Licencia Activa";
+            statusDiv.className = "status active";
+        } else {
+            statusDiv.textContent = "🔴 Estado: Servidor no activado (Usa /activars)";
+            statusDiv.className = "status inactive";
+        }
+
+        document.getElementById('logChannel').value = data.logChannel || '';
+        document.getElementById('modRole').value = data.modRole || '';
+    }
+
+    document.getElementById('configForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const guildId = document.getElementById('guildId').value;
+        const logChannel = document.getElementById('logChannel').value;
+        const modRole = document.getElementById('modRole').value;
+
+        const res = await fetch(`/api/config/${guildId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logChannel, modRole })
+        });
+
+        const result = await res.json();
+        alert(result.message);
+    });
+</script>
+
+</body>
+</html>
