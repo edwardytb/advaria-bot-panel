@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Seguridad Advaria</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
@@ -39,6 +40,10 @@
 </div>
 
 <script>
+    // 🔴 CAMBIA ESTO POR LA IP/PUERTO DE TU SERVIDOR EN WISPBYTE
+    // Ejemplo: "http://192.168.1.10:25565" o "http://tu-subdominio.wispbyte.com:25565"
+    const API_BASE_URL = "http://localhost:3000";
+
     const urlParams = new URLSearchParams(window.location.search);
     const initialGuildId = urlParams.get('guildId');
 
@@ -53,20 +58,29 @@
 
     async function loadConfig(guildId) {
         if (!guildId) return;
-        const res = await fetch(`/api/config/${guildId}`);
-        const data = await res.json();
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/config/${guildId}`);
+            if (!res.ok) throw new Error("Error en la conexión");
+            
+            const data = await res.json();
 
-        const statusDiv = document.getElementById('status');
-        if (data.isActivated) {
-            statusDiv.textContent = "🟢 Estado: Licencia Activa";
-            statusDiv.className = "status active";
-        } else {
-            statusDiv.textContent = "🔴 Estado: Servidor no activado (Usa /activars)";
+            const statusDiv = document.getElementById('status');
+            if (data.isActivated) {
+                statusDiv.textContent = "🟢 Estado: Licencia Activa";
+                statusDiv.className = "status active";
+            } else {
+                statusDiv.textContent = "🔴 Estado: Servidor no activado (Usa /activars)";
+                statusDiv.className = "status inactive";
+            }
+
+            document.getElementById('logChannel').value = data.logChannel || '';
+            document.getElementById('modRole').value = data.modRole || '';
+        } catch (error) {
+            console.error("Error al cargar la configuración:", error);
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = "⚠️ Error conectando con el servidor del bot";
             statusDiv.className = "status inactive";
         }
-
-        document.getElementById('logChannel').value = data.logChannel || '';
-        document.getElementById('modRole').value = data.modRole || '';
     }
 
     document.getElementById('configForm').addEventListener('submit', async (e) => {
@@ -75,14 +89,19 @@
         const logChannel = document.getElementById('logChannel').value;
         const modRole = document.getElementById('modRole').value;
 
-        const res = await fetch(`/api/config/${guildId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logChannel, modRole })
-        });
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/config/${guildId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logChannel, modRole })
+            });
 
-        const result = await res.json();
-        alert(result.message);
+            const result = await res.json();
+            alert(result.message);
+        } catch (error) {
+            console.error("Error al guardar:", error);
+            alert("❌ No se pudo conectar con el bot para guardar los cambios.");
+        }
     });
 </script>
 
