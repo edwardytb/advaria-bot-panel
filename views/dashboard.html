@@ -41,8 +41,8 @@
 
 <script>
     // 🔴 CAMBIA ESTO POR LA IP/PUERTO DE TU SERVIDOR EN WISPBYTE
-    // Ejemplo: "http://192.168.1.10:25565" o "http://tu-subdominio.wispbyte.com:25565"
-    const API_BASE_URL = "http://78.154.103.27:13885";
+    /// ✅ Pon tu subdominio con HTTPS (no hace falta incluir puerto en la URL si el proxy del hosting lo redirige)
+    const API_BASE_URL = "https://security.wisp.uno";
 
     const urlParams = new URLSearchParams(window.location.search);
     const initialGuildId = urlParams.get('guildId');
