@@ -1,13 +1,22 @@
 const { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const express = require('express');
+const cors = require('cors');
 const { QuickDB } = require('quick.db');
 const path = require('path');
 const config = require('./config');
 
 const db = new QuickDB();
 const app = express();
+
+// --- CONFIGURACIÓN DE EXPRESS & CORS UNIVERSAL ---
 app.use(express.json());
-app.use(express.static('views'));
+app.use(express.urlencoded({ extended: true }));
+
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 const client = new Client({
     intents: [
@@ -58,11 +67,21 @@ const commands = [
 
 const rest = new REST({ version: '10' }).setToken(config.token);
 
-client.once('ready', async () => {
+client.once('clientReady', async () => {
     console.log(`✅ Bot conectado como: ${client.user.tag}`);
+    
     try {
-        await rest.put(Routes.applicationCommands(config.clientId), { body: commands });
-        console.log('✅ Comandos Slash (/activars, /clear, /untimeout) registrados correctamente.');
+        // Registra los comandos inmediatamente en CADA servidor donde está el bot
+        const guilds = client.guilds.cache.map(g => g.id);
+        
+        for (const guildId of guilds) {
+            await rest.put(
+                Routes.applicationGuildCommands(config.clientId, guildId),
+                { body: commands }
+            );
+        }
+        
+        console.log(`✅ Comandos Slash registrados al instante en ${guilds.length} servidor(es).`);
     } catch (error) {
         console.error('Error registrando comandos:', error);
     }
@@ -83,6 +102,15 @@ async function isAuthorizedStaff(interaction) {
     }
 
     return false;
+}
+
+// --- FUNCIÓN AUXILIAR PARA COMPROBAR SI UN CANAL TIENE PERMITIDOS LOS LINKS ---
+async function isChannelAllowed(guildId, channelId) {
+    const allowedChannelsString = await db.get(`allowedChannels_${guildId}`);
+    if (!allowedChannelsString) return false;
+
+    const allowedChannels = allowedChannelsString.split(',').map(c => c.trim());
+    return allowedChannels.includes(channelId);
 }
 
 // --- FUNCIÓN AUXILIAR PARA ALERTAR A LOS ROLES Y ENVIAR LOGS AL CANAL DE REPORTES ---
@@ -119,9 +147,11 @@ client.on('interactionCreate', async interaction => {
 
         await db.set(`activated_${interaction.guildId}`, true);
         
+        const dashboardUrl = `https://edwardytb.github.io/advaria-bot-panel/views/dashboard.html?guildId=${interaction.guildId}`;
+
         const embed = new EmbedBuilder()
             .setTitle('🛡️ Seguridad Advaria Activada')
-            .setDescription(`Este servidor ha sido verificado correctamente con la clave \`${key}\`.\n\nPuedes configurar los parámetros desde el panel web: http://localhost:${config.port}/?guildId=${interaction.guildId}`)
+            .setDescription(`Este servidor ha sido verificado correctamente con la clave \`${key}\`.\n\nPuedes configurar los parámetros desde el panel web:\n[Ir al Panel Web](${dashboardUrl})`)
             .setColor(0x00FF00);
 
         return interaction.reply({ embeds: [embed] });
@@ -255,26 +285,31 @@ client.on('messageCreate', async message => {
         return;
     }
 
-    // --- B. DETECCIÓN DE ENLACES (ANTI-LINKS) ---
+    // --- B. DETECCIÓN DE ENLACES (ANTI-LINKS CON EXCEPCIÓN DE CANALES PERMITIDOS) ---
     const linkRegex = /(https?:\/\/[^\s]+)/g;
     if (linkRegex.test(message.content)) {
-        await message.delete().catch(() => {});
+        const isAllowedChannel = await isChannelAllowed(guildId, message.channelId);
 
-        message.author.send(`⚠️ Tu mensaje en **${message.guild.name}** fue eliminado por contener enlaces no permitidos.`).catch(() => {});
-        message.channel.send(`⚠️ ${message.author}, los enlaces no están permitidos por el sistema de seguridad.`).then(m => setTimeout(() => m.delete(), 4000));
-        
-        const logEmbed = new EmbedBuilder()
-            .setTitle('🚨 Enlace Eliminado')
-            .setColor(0xFFA500)
-            .addFields(
-                { name: 'Usuario', value: `${message.author.tag} (${message.author.id})`, inline: true },
-                { name: 'Canal', value: `<#${message.channelId}>`, inline: true },
-                { name: 'Contenido', value: message.content }
-            )
-            .setTimestamp();
+        // Si el canal NO está en la lista blanca de canales permitidos, borra el mensaje
+        if (!isAllowedChannel) {
+            await message.delete().catch(() => {});
 
-        await notifyStaffAndLog(message.guild, logChannel, modRoles, logEmbed);
-        return;
+            message.author.send(`⚠️ Tu mensaje en **${message.guild.name}** fue eliminado por contener enlaces no permitidos.`).catch(() => {});
+            message.channel.send(`⚠️ ${message.author}, los enlaces no están permitidos en este canal.`).then(m => setTimeout(() => m.delete(), 4000));
+            
+            const logEmbed = new EmbedBuilder()
+                .setTitle('🚨 Enlace Eliminado')
+                .setColor(0xFFA500)
+                .addFields(
+                    { name: 'Usuario', value: `${message.author.tag} (${message.author.id})`, inline: true },
+                    { name: 'Canal', value: `<#${message.channelId}>`, inline: true },
+                    { name: 'Contenido', value: message.content }
+                )
+                .setTimestamp();
+
+            await notifyStaffAndLog(message.guild, logChannel, modRoles, logEmbed);
+            return;
+        }
     }
 
     // --- C. DETECCIÓN DE SPAM (3 MENSAJES REPETIDOS) ---
@@ -290,22 +325,15 @@ client.on('messageCreate', async message => {
     userMessageCache.set(userId, userCache);
 
     if (userCache.count >= 3) {
-        const durationMs = 3 * 60 * 1000; // 3 minutos de Mute
+        const durationMs = 3 * 60 * 1000;
 
-        // 1. Eliminar el último mensaje de spam
         await message.delete().catch(() => {});
-
-        // 2. Notificación en privado (MD) al usuario
         await message.author.send(`🤐 Has sido aislado por 3 minutos en **${message.guild.name}**. Motivo: Enviar mensajes repetidos (Anti-Spam).`).catch(() => {});
 
         try {
-            // 3. Aplicar Aislamiento
             await message.member.timeout(durationMs, "Anti-Spam: 3 mensajes repetidos detectados");
-
-            // 4. Mensaje temporal en chat público que se borra en 4 segundos
             message.channel.send(`🤐 ${message.author} ha sido aislado por 3 minutos por spam.`).then(m => setTimeout(() => m.delete(), 4000));
             
-            // 5. Reporte completo enviándolo ÚNICAMENTE al canal de LOGS
             const logEmbed = new EmbedBuilder()
                 .setTitle('🚨 Mute Automático - Anti-Spam')
                 .setColor(0xFF0000)
@@ -350,34 +378,33 @@ client.on('messageCreate', async message => {
     }
 });
 
-// --- 4. PANEL WEB DE CONFIGURACIÓN ---
-app.use(express.urlencoded({ extended: true }));
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
-});
-
+// --- 4. ENDPOINTS API DE CONFIGURACIÓN ---
 app.get('/api/config/:guildId', async (req, res) => {
     const guildId = req.params.guildId;
     const isActivated = await db.get(`activated_${guildId}`) || false;
     const logChannel = await db.get(`logChannel_${guildId}`) || "";
     const modRole = await db.get(`modRole_${guildId}`) || "";
+    const allowedChannels = await db.get(`allowedChannels_${guildId}`) || "";
 
-    res.json({ isActivated, logChannel, modRole });
+    res.json({ isActivated, logChannel, modRole, allowedChannels });
 });
 
 app.post('/api/config/:guildId', async (req, res) => {
     const guildId = req.params.guildId;
-    const { logChannel, modRole } = req.body;
+    const { logChannel, modRole, allowedChannels } = req.body;
 
     await db.set(`logChannel_${guildId}`, logChannel);
     await db.set(`modRole_${guildId}`, modRole);
+    await db.set(`allowedChannels_${guildId}`, allowedChannels);
 
     res.json({ status: "success", message: "Configuración guardada correctamente." });
 });
 
-app.listen(config.port, () => {
-    console.log(`🌐 Panel Web corriendo en http://localhost:${config.port}`);
+// Forzar el puerto asignado por Wispbyte (13885)
+const PORT = process.env.PORT || config.port || 13885;
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 API Web escuchando correctamente en el puerto ${PORT}`);
 });
 
 client.login(config.token);
