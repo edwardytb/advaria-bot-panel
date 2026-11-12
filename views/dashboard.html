@@ -1,114 +1,367 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Seguridad Advaria</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px 0; box-sizing: border-box; }
-        .card { background-color: #1e293b; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 480px; }
-        h2 { text-align: center; color: #38bdf8; margin-bottom: 20px; }
-        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.9em; }
-        small { color: #94a3b8; font-size: 0.8em; }
-        input { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #334155; background-color: #0f172a; color: #fff; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; margin-top: 25px; background-color: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background-color: #0369a1; }
-        .status { text-align: center; margin-bottom: 15px; font-weight: bold; }
-        .active { color: #4ade80; }
-        .inactive { color: #f87171; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Configuración - Advaria Studio</title>
+  <style>
+    :root {
+      --bg-color: #0f0f15;
+      --card-bg: #181824;
+      --input-bg: #222233;
+      --text-color: #e1e1e6;
+      --accent-color: #8a2be2;
+      --accent-hover: #9d4edd;
+      --border-color: #2a2a3d;
+      --success-color: #2ed573;
+      --error-color: #ff4757;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-color);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #fff;
+      margin-top: 0;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      color: #d1d1e0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #a0a0b8;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      background-color: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent-color);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn:active {
+      transform: scale(0.99);
+    }
+
+    .btn-secondary {
+      background-color: #33334d;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    .btn-secondary:hover {
+      background-color: #444466;
+    }
+
+    #statusMessage {
+      margin-top: 15px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .success { color: var(--success-color); }
+    .error { color: var(--error-color); }
+  </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>🛡️ Panel de Seguridad Advaria</h2>
-    <div id="status" class="status">Cargando estado del servidor...</div>
+  <div class="container">
+    <h1>⚙️ Panel de Configuración - Advaria Studio</h1>
 
-    <form id="configForm">
-        <label for="guildId">ID del Servidor:</label>
-        <input type="text" id="guildId" placeholder="Ej: 123456789012345678" required>
+    <!-- Selección de Servidor -->
+    <div class="form-group">
+      <label for="guildSelect">Selecciona o introduce la ID del Servidor:</label>
+      <select id="guildSelect" onchange="actualizarGuildIdManual()">
+        <option value="">-- Seleccionar Servidor --</option>
+        <option value="1411514775128637484">Advaria Studio OFICIAL (1411514775128637484)</option>
+      </select>
+    </div>
 
-        <label for="logChannel">ID del Canal de Reportes / Logs:</label>
-        <input type="text" id="logChannel" placeholder="Ej: 987654321098765432">
+    <div class="form-group">
+      <label for="guildIdInput">ID del Servidor (Manual):</label>
+      <input type="text" id="guildIdInput" value="1411514775128637484" placeholder="Ingresa la ID del servidor">
+    </div>
 
-        <label for="modRole">IDs de Roles de Administración / Staff:</label>
-        <small>Separa múltiples IDs con comas (Ej: ID_Admin, ID_Staff)</small>
-        <input type="text" id="modRole" placeholder="11111111111, 22222222222">
+    <button class="btn btn-secondary" onclick="cargarConfiguracion()">📂 Cargar Datos del Servidor</button>
 
-        <!-- NUEVO CAMPO DE CANALES PERMITIDOS PARA LINKS/SPAM -->
-        <label for="allowedChannels">IDs de Canales Permitidos para Links / Spam:</label>
-        <small>Separa múltiples IDs con comas (Ej: ID_Multimedia, ID_Spam)</small>
-        <input type="text" id="allowedChannels" placeholder="44444444444, 55555555555">
+    <!-- Canales de Sistema y Logs -->
+    <div class="section-title">📌 Canales de Sistema y Logs</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="canalSugerencias">Canal de Sugerencias:</label>
+        <input type="text" id="canalSugerencias" placeholder="ID del canal">
+      </div>
+      <div class="form-group">
+        <label for="canalLogs">Canal de Logs Generales:</label>
+        <input type="text" id="canalLogs" placeholder="ID del canal">
+      </div>
+    </div>
 
-        <button type="submit">Guardar Configuración</button>
-    </form>
-</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="canalLogsSanciones">Canal Logs de Sanciones:</label>
+        <input type="text" id="canalLogsSanciones" placeholder="ID del canal">
+      </div>
+      <div class="form-group">
+        <label for="canalLogsTorneos">Canal Logs de Torneos:</label>
+        <input type="text" id="canalLogsTorneos" placeholder="ID del canal">
+      </div>
+    </div>
 
-<script>
-    const API_BASE_URL = "https://security.wisp.uno";
+    <!-- Sistema de Tickets -->
+    <div class="section-title">🎫 Sistema de Tickets</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="catTicketsGen">Categoría Tickets Generales:</label>
+        <input type="text" id="catTicketsGen" placeholder="ID de la categoría">
+      </div>
+      <div class="form-group">
+        <label for="catTicketsEv">Categoría Tickets Eventos:</label>
+        <input type="text" id="catTicketsEv" placeholder="ID de la categoría">
+      </div>
+    </div>
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialGuildId = urlParams.get('guildId');
+    <!-- Sistema de Torneos -->
+    <div class="section-title">🏆 Sistema de Torneos</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="catTorneos">Categoría de Torneos:</label>
+        <input type="text" id="catTorneos" placeholder="ID de la categoría">
+      </div>
+      <div class="form-group">
+        <label for="rolCreadorTorneos">Rol Creador de Torneos:</label>
+        <input type="text" id="rolCreadorTorneos" placeholder="ID del rol">
+      </div>
+    </div>
 
-    if (initialGuildId) {
-        document.getElementById('guildId').value = initialGuildId;
-        loadConfig(initialGuildId);
+    <div class="form-group">
+      <label for="rolInscritoTorneos">Rol Inscrito a Torneos:</label>
+      <input type="text" id="rolInscritoTorneos" placeholder="ID del rol">
+    </div>
+
+    <!-- Moderación y Roles -->
+    <!-- Moderación y Roles -->
+    <div class="section-title">🛡️ Moderación y Roles</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="rolMute">Rol Silenciado (Mute Role):</label>
+        <input type="text" id="rolMute" placeholder="ID del rol">
+      </div>
+      <div class="form-group">
+        <label for="rolCreator">Rol de Creador / Partner (Advaria Creators):</label>
+        <input type="text" id="rolCreator" placeholder="ID del rol de creador">
+      </div>
+    </div>
+    
+      <div class="form-group">
+        <label for="rolMiembro">Rol de Miembro (Aceptar Reglas):</label>
+        <input type="text" id="rolMiembro" placeholder="ID del rol">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="rolesStaff">Roles de Staff (IDs separadas por coma):</label>
+      <input type="text" id="rolesStaff" placeholder="Ej: 1411570374017286184, 1411570723583168532">
+    </div>
+
+    <button class="btn" onclick="guardarConfiguracion()">💾 Guardar Configuración</button>
+
+    <div id="statusMessage"></div>
+  </div>
+
+  <script>
+    // URL Base segura HTTPS conectada con tu subdominio Wispbyte
+    const API_BASE_URL = 'https://advaria.wisp.uno';
+
+    function actualizarGuildIdManual() {
+      const select = document.getElementById('guildSelect');
+      if (select.value) {
+        document.getElementById('guildIdInput').value = select.value;
+      }
     }
 
-    document.getElementById('guildId').addEventListener('change', (e) => {
-        loadConfig(e.target.value);
-    });
+    async function cargarConfiguracion() {
+      const guildId = document.getElementById('guildIdInput').value.trim();
+      const statusMsg = document.getElementById('statusMessage');
 
-    async function loadConfig(guildId) {
-        if (!guildId) return;
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/config/${guildId}`);
-            if (!res.ok) throw new Error("Error en la conexión");
-            
-            const data = await res.json();
+      if (!guildId) {
+        statusMsg.className = 'error';
+        statusMsg.innerText = '❌ Por favor, introduce una ID de servidor válida.';
+        return;
+      }
 
-            const statusDiv = document.getElementById('status');
-            if (data.isActivated) {
-                statusDiv.textContent = "🟢 Estado: Licencia Activa";
-                statusDiv.className = "status active";
-            } else {
-                statusDiv.textContent = "🔴 Estado: Servidor no activado (Usa /activars)";
-                statusDiv.className = "status inactive";
-            }
+      statusMsg.className = '';
+      statusMsg.innerText = '⏳ Cargando datos desde Wispbyte...';
 
-            document.getElementById('logChannel').value = data.logChannel || '';
-            document.getElementById('modRole').value = data.modRole || '';
-            document.getElementById('allowedChannels').value = data.allowedChannels || '';
-        } catch (error) {
-            console.error("Error al cargar la configuración:", error);
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = "⚠️ Error conectando con el servidor del bot";
-            statusDiv.className = "status inactive";
-        }
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/config/${guildId}`);
+        if (!response.ok) throw new Error('Error al consultar el servidor');
+
+        const config = await response.json();
+
+        // Rellenar campos de la UI
+        document.getElementById('canalSugerencias').value = config.canalSugerencias || '';
+        document.getElementById('canalLogs').value = config.canalLogs || '';
+        document.getElementById('canalLogsSanciones').value = config.canalLogsSanciones || '';
+        document.getElementById('canalLogsTorneos').value = config.canalLogsTorneos || '';
+        document.getElementById('catTicketsGen').value = config.catTicketsGen || '';
+        document.getElementById('catTicketsEv').value = config.catTicketsEv || '';
+        document.getElementById('catTorneos').value = config.catTorneos || '';
+        document.getElementById('rolCreadorTorneos').value = config.rolCreadorTorneos || '';
+        document.getElementById('rolInscritoTorneos').value = config.rolInscritoTorneos || '';
+        document.getElementById('rolMute').value = config.rolMute || '';
+        document.getElementById('rolMiembro').value = config.rolMiembro || '';
+        document.getElementById('rolesStaff').value = Array.isArray(config.rolesStaff) ? config.rolesStaff.join(', ') : (config.rolesStaff || '');
+
+        statusMsg.className = 'success';
+        statusMsg.innerText = '✅ Configuración cargada correctamente.';
+      } catch (error) {
+        console.error(error);
+        statusMsg.className = 'error';
+        statusMsg.innerText = '❌ Error al cargar los datos desde Wispbyte.';
+      }
     }
 
-    document.getElementById('configForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const guildId = document.getElementById('guildId').value;
-        const logChannel = document.getElementById('logChannel').value;
-        const modRole = document.getElementById('modRole').value;
-        const allowedChannels = document.getElementById('allowedChannels').value;
+    async function guardarConfiguracion() {
+      const guildId = document.getElementById('guildIdInput').value.trim();
+      const statusMsg = document.getElementById('statusMessage');
 
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/config/${guildId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ logChannel, modRole, allowedChannels })
-            });
+      if (!guildId) {
+        statusMsg.className = 'error';
+        statusMsg.innerText = '❌ Por favor, introduce una ID de servidor válida.';
+        return;
+      }
 
-            const result = await res.json();
-            alert(result.message);
-        } catch (error) {
-            console.error("Error al guardar:", error);
-            alert("❌ No se pudo conectar con el bot para guardar los cambios.");
+      const payload = {
+        canalSugerencias: document.getElementById('canalSugerencias').value.trim(),
+        canalLogs: document.getElementById('canalLogs').value.trim(),
+        canalLogsSanciones: document.getElementById('canalLogsSanciones').value.trim(),
+        canalLogsTorneos: document.getElementById('canalLogsTorneos').value.trim(),
+        catTicketsGen: document.getElementById('catTicketsGen').value.trim(),
+        catTicketsEv: document.getElementById('catTicketsEv').value.trim(),
+        catTorneos: document.getElementById('catTorneos').value.trim(),
+        rolCreadorTorneos: document.getElementById('rolCreadorTorneos').value.trim(),
+        rolInscritoTorneos: document.getElementById('rolInscritoTorneos').value.trim(),
+        rolMute: document.getElementById('rolMute').value.trim(),
+        rolMiembro: document.getElementById('rolMiembro').value.trim(),
+        rolesStaff: document.getElementById('rolesStaff').value.trim()
+      };
+
+      statusMsg.className = '';
+      statusMsg.innerText = '⏳ Guardando cambios...';
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/config/${guildId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          statusMsg.className = 'success';
+          statusMsg.innerText = '✅ Configuración guardada con éxito en Wispbyte.';
+        } else {
+          throw new Error(result.message || 'Error al guardar');
         }
-    });
-</script>
+      } catch (error) {
+        console.error(error);
+        statusMsg.className = 'error';
+        statusMsg.innerText = '❌ Error al guardar los datos en Wispbyte.';
+      }
+    }
 
+    // Carga automática al iniciar la página
+    window.addEventListener('DOMContentLoaded', () => {
+      cargarConfiguracion();
+    });
+  </script>
 </body>
 </html>
