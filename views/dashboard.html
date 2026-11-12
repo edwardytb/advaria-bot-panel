@@ -43,13 +43,13 @@
         <label for="logChannel">ID del Canal de Reportes / Logs:</label>
         <input type="text" id="logChannel" placeholder="Ej: 987654321098765432">
 
-        <label for="modRole">IDs de Roles de Administración / Staff:</label>
-        <small>Separa múltiples IDs con comas (Ej: ID_Admin, ID_Staff)</small>
+        <label for="modRole">IDs de Roles de Staff:</label>
+        <small>Separa IDs con comas (Ej: ID_Admin, ID_Staff)</small>
         <input type="text" id="modRole" placeholder="11111111111, 22222222222">
 
         <!-- CANALES PERMITIDOS DINÁMICOS -->
-        <label>Canales Permitidos para Links (Individuales):</label>
-        <small>Selecciona un canal para agregarlo a la lista de excepciones:</small>
+        <label>Canales Permitidos para Links:</label>
+        <small>Selecciona un canal para agregarlo a la lista:</small>
         <div class="row-add">
             <select id="channelSelect"><option value="">Selecciona un canal...</option></select>
             <button type="button" onclick="addChannel()">Añadir</button>
@@ -68,7 +68,7 @@
         <input type="hidden" id="allowedCategories">
 
         <!-- PALABRAS CLAVE PARA DETECCIÓN DE TICKETS LIBRES -->
-        <label for="ticketKeywords">Palabras Clave para Detectar Tickets Libres:</label>
+        <label for="ticketKeywords">Palabras Clave para Detectar:</label>
         <small>Si un canal libre contiene alguna de estas palabras en su nombre, se permitirán links (Separa con comas, ej: soporte, ayuda, caso)</small>
         <input type="text" id="ticketKeywords" placeholder="soporte, ayuda, report">
 
