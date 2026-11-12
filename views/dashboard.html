@@ -6,13 +6,26 @@
     <title>Panel de Seguridad Advaria</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px 0; box-sizing: border-box; }
-        .card { background-color: #1e293b; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 480px; }
+        .card { background-color: #1e293b; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 560px; }
         h2 { text-align: center; color: #38bdf8; margin-bottom: 20px; }
-        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.9em; }
-        small { color: #94a3b8; font-size: 0.8em; }
-        input { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #334155; background-color: #0f172a; color: #fff; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; margin-top: 25px; background-color: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background-color: #0369a1; }
+        label { display: block; margin-top: 18px; font-weight: bold; font-size: 0.9em; color: #e2e8f0; }
+        small { color: #94a3b8; font-size: 0.8em; display: block; margin-top: 2px; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #334155; background-color: #0f172a; color: #fff; box-sizing: border-box; }
+        .row-add { display: flex; gap: 10px; margin-top: 5px; }
+        .row-add select { flex: 1; margin-top: 0; }
+        .row-add button { width: auto; padding: 0 15px; margin-top: 0; background-color: #10b981; }
+        .row-add button:hover { background-color: #059669; }
+        
+        /* Contenedor de etiquetas dinámicas */
+        .badge-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155; min-height: 45px; }
+        .badge { display: flex; align-items: center; background-color: #334155; padding: 5px 10px; border-radius: 4px; font-size: 0.85em; gap: 8px; border: 1px solid #475569; }
+        .badge span { color: #38bdf8; font-weight: bold; }
+        .badge small { color: #94a3b8; margin: 0; font-size: 0.75em; }
+        .badge button { background: none; border: none; color: #f87171; cursor: pointer; font-weight: bold; padding: 0; margin: 0; font-size: 1em; }
+        .badge button:hover { color: #ef4444; }
+
+        button[type="submit"] { width: 100%; padding: 12px; margin-top: 25px; background-color: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button[type="submit"]:hover { background-color: #0369a1; }
         .status { text-align: center; margin-bottom: 15px; font-weight: bold; }
         .active { color: #4ade80; }
         .inactive { color: #f87171; }
@@ -35,17 +48,37 @@
         <small>Separa múltiples IDs con comas (Ej: ID_Admin, ID_Staff)</small>
         <input type="text" id="modRole" placeholder="11111111111, 22222222222">
 
-        <!-- NUEVO CAMPO DE CANALES PERMITIDOS PARA LINKS/SPAM -->
-        <label for="allowedChannels">IDs de Canales Permitidos para Links / Spam:</label>
-        <small>Separa múltiples IDs con comas (Ej: ID_Multimedia, ID_Spam)</small>
-        <input type="text" id="allowedChannels" placeholder="44444444444, 55555555555">
+        <!-- CANALES PERMITIDOS DINÁMICOS -->
+        <label>Canales Permitidos para Links (Individuales):</label>
+        <small>Selecciona un canal para agregarlo a la lista de excepciones:</small>
+        <div class="row-add">
+            <select id="channelSelect"><option value="">Selecciona un canal...</option></select>
+            <button type="button" onclick="addChannel()">Añadir</button>
+        </div>
+        <div id="allowedChannelsBadges" class="badge-container"></div>
+        <input type="hidden" id="allowedChannels">
+
+        <!-- CATEGORÍAS PERMITIDAS DINÁMICAS -->
+        <label>Categorías Permitidas para Links (Ej: Tickets):</label>
+        <small>Todos los canales dentro de esta categoría permitirán enlaces:</small>
+        <div class="row-add">
+            <select id="categorySelect"><option value="">Selecciona una categoría...</option></select>
+            <button type="button" onclick="addCategory()">Añadir</button>
+        </div>
+        <div id="allowedCategoriesBadges" class="badge-container"></div>
+        <input type="hidden" id="allowedCategories">
 
         <button type="submit">Guardar Configuración</button>
     </form>
 </div>
 
-<script>
+<script type="text/javascript">
     const API_BASE_URL = "https://security.wisp.uno";
+
+    let channelsList = [];
+    let categoriesList = [];
+    let selectedChannels = [];
+    let selectedCategories = [];
 
     const urlParams = new URLSearchParams(window.location.search);
     const initialGuildId = urlParams.get('guildId');
@@ -78,7 +111,16 @@
 
             document.getElementById('logChannel').value = data.logChannel || '';
             document.getElementById('modRole').value = data.modRole || '';
-            document.getElementById('allowedChannels').value = data.allowedChannels || '';
+
+            channelsList = data.serverChannels || [];
+            categoriesList = data.serverCategories || [];
+
+            populateDropdowns();
+
+            selectedChannels = data.allowedChannels ? data.allowedChannels.split(',').map(s => s.trim()).filter(Boolean) : [];
+            selectedCategories = data.allowedCategories ? data.allowedCategories.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+            renderBadges();
         } catch (error) {
             console.error("Error al cargar la configuración:", error);
             const statusDiv = document.getElementById('status');
@@ -87,18 +129,99 @@
         }
     }
 
+    function populateDropdowns() {
+        const chanSelect = document.getElementById('channelSelect');
+        chanSelect.innerHTML = '<option value="">Selecciona un canal...</option>';
+        channelsList.forEach(c => {
+            chanSelect.innerHTML += `<option value="${c.id}">#${c.name}</option>`;
+        });
+
+        const catSelect = document.getElementById('categorySelect');
+        catSelect.innerHTML = '<option value="">Selecciona una categoría...</option>';
+        categoriesList.forEach(cat => {
+            catSelect.innerHTML += `<option value="${cat.id}">📁 ${cat.name}</option>`;
+        });
+    }
+
+    function addChannel() {
+        const select = document.getElementById('channelSelect');
+        const id = select.value;
+        if (id && !selectedChannels.includes(id)) {
+            selectedChannels.push(id);
+            renderBadges();
+        }
+    }
+
+    function removeChannel(id) {
+        selectedChannels = selectedChannels.filter(c => c !== id);
+        renderBadges();
+    }
+
+    function addCategory() {
+        const select = document.getElementById('categorySelect');
+        const id = select.value;
+        if (id && !selectedCategories.includes(id)) {
+            selectedCategories.push(id);
+            renderBadges();
+        }
+    }
+
+    function removeCategory(id) {
+        selectedCategories = selectedCategories.filter(c => c !== id);
+        renderBadges();
+    }
+
+    function renderBadges() {
+        // Canales
+        const chanContainer = document.getElementById('allowedChannelsBadges');
+        chanContainer.innerHTML = '';
+        selectedChannels.forEach(id => {
+            const found = channelsList.find(c => c.id === id);
+            const name = found ? `#${found.name}` : 'Canal desconocido';
+            chanContainer.innerHTML += `
+                <div class="badge">
+                    <div>
+                        <span>${name}</span>
+                        <small>${id}</small>
+                    </div>
+                    <button type="button" onclick="removeChannel('${id}')">❌</button>
+                </div>
+            `;
+        });
+        document.getElementById('allowedChannels').value = selectedChannels.join(', ');
+
+        // Categorías
+        const catContainer = document.getElementById('allowedCategoriesBadges');
+        catContainer.innerHTML = '';
+        selectedCategories.forEach(id => {
+            const found = categoriesList.find(c => c.id === id);
+            const name = found ? `📁 ${found.name}` : 'Categoría desconocida';
+            catContainer.innerHTML += `
+                <div class="badge">
+                    <div>
+                        <span>${name}</span>
+                        <small>${id}</small>
+                    </div>
+                    <button type="button" onclick="removeCategory('${id}')">❌</button>
+                </div>
+            `;
+        });
+        document.getElementById('allowedCategories').value = selectedCategories.join(', ');
+    }
+
     document.getElementById('configForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const guildId = document.getElementById('guildId').value;
         const logChannel = document.getElementById('logChannel').value;
         const modRole = document.getElementById('modRole').value;
         const allowedChannels = document.getElementById('allowedChannels').value;
+        const allowedCategories = document.getElementById('allowedCategories').value;
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/config/${guildId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ logChannel, modRole, allowedChannels })
+                body: JSON.stringify({ logChannel, modRole, allowedChannels, allowedCategories })
             });
 
             const result = await res.json();
