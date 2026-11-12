@@ -16,7 +16,6 @@
         .row-add button { width: auto; padding: 0 15px; margin-top: 0; background-color: #10b981; }
         .row-add button:hover { background-color: #059669; }
         
-        /* Contenedor de etiquetas dinámicas */
         .badge-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155; min-height: 45px; }
         .badge { display: flex; align-items: center; background-color: #334155; padding: 5px 10px; border-radius: 4px; font-size: 0.85em; gap: 8px; border: 1px solid #475569; }
         .badge span { color: #38bdf8; font-weight: bold; }
@@ -68,6 +67,11 @@
         <div id="allowedCategoriesBadges" class="badge-container"></div>
         <input type="hidden" id="allowedCategories">
 
+        <!-- PALABRAS CLAVE PARA DETECCIÓN DE TICKETS LIBRES -->
+        <label for="ticketKeywords">Palabras Clave para Detectar Tickets Libres:</label>
+        <small>Si un canal libre contiene alguna de estas palabras en su nombre, se permitirán links (Separa con comas, ej: soporte, ayuda, caso)</small>
+        <input type="text" id="ticketKeywords" placeholder="soporte, ayuda, report">
+
         <button type="submit">Guardar Configuración</button>
     </form>
 </div>
@@ -111,6 +115,7 @@
 
             document.getElementById('logChannel').value = data.logChannel || '';
             document.getElementById('modRole').value = data.modRole || '';
+            document.getElementById('ticketKeywords').value = data.ticketKeywords || '';
 
             channelsList = data.serverChannels || [];
             categoriesList = data.serverCategories || [];
@@ -172,7 +177,6 @@
     }
 
     function renderBadges() {
-        // Canales
         const chanContainer = document.getElementById('allowedChannelsBadges');
         chanContainer.innerHTML = '';
         selectedChannels.forEach(id => {
@@ -190,7 +194,6 @@
         });
         document.getElementById('allowedChannels').value = selectedChannels.join(', ');
 
-        // Categorías
         const catContainer = document.getElementById('allowedCategoriesBadges');
         catContainer.innerHTML = '';
         selectedCategories.forEach(id => {
@@ -216,12 +219,13 @@
         const modRole = document.getElementById('modRole').value;
         const allowedChannels = document.getElementById('allowedChannels').value;
         const allowedCategories = document.getElementById('allowedCategories').value;
+        const ticketKeywords = document.getElementById('ticketKeywords').value;
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/config/${guildId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ logChannel, modRole, allowedChannels, allowedCategories })
+                body: JSON.stringify({ logChannel, modRole, allowedChannels, allowedCategories, ticketKeywords })
             });
 
             const result = await res.json();
